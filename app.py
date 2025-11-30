@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, redirect
+from flask import Flask, jsonify, request, redirect, render_template
 from dotenv import load_dotenv
 from cloudflare import Cloudflare
 import requests
@@ -37,6 +37,11 @@ def git_pull_loop():
             print("Running git pull...")
             result = subprocess.run(['git', 'pull'], capture_output=True, text=True, cwd=os.path.dirname(__file__))
             print(f"Git pull output: {result.stdout}")
+
+            print("Reloading sites.json...")
+            parse_sites()
+            print("Reloaded sites.json after git pull")
+
             if result.stderr:
                 print(f"Git pull errors: {result.stderr}")
         except Exception as e:
@@ -56,28 +61,31 @@ client = Cloudflare(
     api_token=os.getenv("CLOUDFLARE_API_TOKEN"),
 )
 
-with open('sites.json', 'r') as f:
-    data = json.load(f)
-    for name, value in data.items():
-        # Handle both [target, record_id, record_type] and just target string
-        if isinstance(value, list):
-            target = value[0]
-            record_id = value[1] if len(value) > 1 else ""
-            record_type = value[2] if len(value) > 2 else "A"
-            proxied = value[3] if len(value) > 3 else True
-        else:
-            target = value
-            record_id = ""
-            record_type = "A"
-            proxied = True
-        
-        # If type is URL, store the redirect URL but use self_ip for DNS
-        if record_type == "URL":
-            sites[name] = target  # Keep the redirect URL
-            dns_records[name] = [self_ip, record_id, "A", proxied]  # Use self_ip for DNS A record
-        else:
-            sites[name] = target
-            dns_records[name] = [target, record_id, record_type, proxied]
+def parse_sites():
+    global sites
+    global dns_records
+    with open('sites.json', 'r') as f:
+        data = json.load(f)
+        for name, value in data.items():
+            # Handle both [target, record_id, record_type] and just target string
+            if isinstance(value, list):
+                target = value[0]
+                record_id = value[1] if len(value) > 1 else ""
+                record_type = value[2] if len(value) > 2 else "A"
+                proxied = value[3] if len(value) > 3 else True
+            else:
+                target = value
+                record_id = ""
+                record_type = "A"
+                proxied = True
+            
+            # If type is URL, store the redirect URL but use self_ip for DNS
+            if record_type == "URL":
+                sites[name] = target  # Keep the redirect URL
+                dns_records[name] = [self_ip, record_id, "A", proxied]  # Use self_ip for DNS A record
+            else:
+                sites[name] = target
+                dns_records[name] = [target, record_id, record_type, proxied]
 
 def get_dns_records(zone_id):
     global dns_records
@@ -161,7 +169,7 @@ def subdomain(path):
     print(sub)
 
     if sub == None:
-        return "this page is blank right now so uhh dm either @quuut or @wi1d3n_yu4n (TotalyNotWilden) on discord to add a subdomain", 200
+        return render_template('index.html', sites=sites)
 
     found = False
     for s in sites:
@@ -206,19 +214,18 @@ if __name__ == '__main__':
                 print(f"\nConflict detected for {name}:")
                 print(f"  Local:  {dns_content} {'(URL: ' + content + ')' if local_record and local_record[2] == 'A' and content.startswith(('http://', 'https://')) else ''}")
                 print(f"  Remote: {remote_record[0]}")
-                choice = input("Use [l]ocal or [r]emote? ").strip().lower()
-                if choice == 'l':
-                    print(f"Creating DNS record to local value: {dns_content}")
-                    # Use A record type for URL types
+                print("Attempting to use local value...")
+                try:
+                    # Try to create with local value
                     dns_type = "A"
                     result = client.dns.records.create(zone_id=zone_id, name=name, type=dns_type, content=dns_content, proxied=local_record[3] if local_record else True)
                     dns_records[name] = [dns_content, result.id, dns_type, local_record[3] if local_record else True]
-                elif choice == 'r':
+                    print(f"✓ Successfully created with local value: {dns_content}")
+                except Exception as e:
+                    print(f"✗ Failed to create with local value: {e}")
                     print(f"Using remote value: {remote_record[0]}")
                     sites[name] = remote_record[0]
                     dns_records[name] = [remote_record[0], remote_record[1], remote_record[2], local_record[3] if local_record else True]
-                else:
-                    print("Invalid choice, skipping...")
             else:
                 print(f"Creating DNS record for {name} -> {dns_content}")
                 # Use A record type for URL types
@@ -229,10 +236,9 @@ if __name__ == '__main__':
             print(f"\nConflict detected for {name}:")
             print(f"  Local:  {dns_content} {'(URL: ' + content + ')' if local_record and local_record[2] == 'A' and content.startswith(('http://', 'https://')) else ''}")
             print(f"  Remote: {remote_record[0]}")
-            choice = input("Use [l]ocal or [r]emote? ").strip().lower()
-            
-            if choice == 'l':
-                print(f"Updating DNS record to local value: {dns_content}")
+            print("Attempting to use local value...")
+            try:
+                # Try to update with local value
                 client.dns.records.update(
                     zone_id=zone_id,
                     dns_record_id=local_record[1],
@@ -242,12 +248,12 @@ if __name__ == '__main__':
                     type="A"
                 )
                 dns_records[name] = [dns_content, local_record[1], "A", local_record[3]]
-            elif choice == 'r':
+                print(f"✓ Successfully updated to local value: {dns_content}")
+            except Exception as e:
+                print(f"✗ Failed to update with local value: {e}")
                 print(f"Keeping remote value: {remote_record[0]}")
                 sites[name] = remote_record[0]
                 dns_records[name] = [remote_record[0], local_record[1], remote_record[2], local_record[3]]
-            else:
-                print("Invalid choice, skipping...")
     print(dns_records)
     
     # Start git pull thread
