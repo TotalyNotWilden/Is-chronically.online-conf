@@ -1,0 +1,52 @@
+{
+    "quuut.is-chronically.online": [
+        "51.83.167.18",
+        "7a651ce9d9b26bdd3228f98f314a0fc5",
+        "A"
+    ],
+    "evrlovxd.is-chronically.online": [
+        "51.83.167.18",
+        "314dd0e8260a33dbfcfc5285f3e02499",
+        "A"
+    ],
+    "is-chronically.online": [
+        "\"v=spf1 include:spf.efwd.registrar-servers.com ~all\"",
+        "06ed699b317367b5e956fc0514b44323",
+        "TXT"
+    ],
+    "matrix.is-chronically.online": [
+        "94.156.114.11",
+        "26ce7785080aef0fea0462348fa7486a",
+        "A"
+    ],
+    "vshark.is-chronically.online": [
+        "94.156.114.11",
+        "4900fb94415e90c6ead39701b7d15f46",
+        "A"
+    ],
+    "banana.is-chronically.online": [
+        "totalynotwilden.tech",
+        "cd3410f427bf4b7aad1f47119b399dff",
+        "CNAME"
+    ],
+    "www.is-chronically.online": [
+        "parkingpage.namecheap.com",
+        "2114e66c1b41b9aacd02115d2c4ae654",
+        "CNAME"
+    ],
+    "star.is-chronically.online": [
+        "104.248.153.202",
+        "3b667515468830e0b1b028507c9be8ee",
+        "A"
+    ],
+    "kaitlyn.is-chronically.online": [
+        "kaitlyn.codes",
+        "1cdd3a4af2da2fde6d90164baa4160ed",
+        "CNAME"
+    ],
+    "maths_genius.is-chronically.online": [
+        "51.83.167.18",
+        "9568e159dfd46701b031d7b1b18c6154",
+        "A"
+    ]
+}

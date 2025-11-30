@@ -1,0 +1,4 @@
+flask
+cloudflare
+requests
+dotenv

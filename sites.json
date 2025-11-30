@@ -1,0 +1,92 @@
+{
+    "quuut.is-chronically.online": [
+        "51.83.167.18",
+        "7a651ce9d9b26bdd3228f98f314a0fc5",
+        "A",
+        true
+    ],
+    "evrlovxd.is-chronically.online": [
+        "51.83.167.18",
+        "314dd0e8260a33dbfcfc5285f3e02499",
+        "A",
+        true
+    ],
+    "is-chronically.online": [
+        "\"v=spf1 include:spf.efwd.registrar-servers.com ~all\"",
+        "06ed699b317367b5e956fc0514b44323",
+        "TXT",
+        true
+    ],
+    "matrix.is-chronically.online": [
+        "94.156.114.11",
+        "26ce7785080aef0fea0462348fa7486a",
+        "A",
+        false
+    ],
+    "vshark.is-chronically.online": [
+        "94.156.114.11",
+        "4900fb94415e90c6ead39701b7d15f46",
+        "A",
+        true
+    ],
+    "banana.is-chronically.online": [
+        "totalynotwilden.tech",
+        "cd3410f427bf4b7aad1f47119b399dff",
+        "CNAME",
+        true
+    ],
+    "www.is-chronically.online": [
+        "parkingpage.namecheap.com",
+        "2114e66c1b41b9aacd02115d2c4ae654",
+        "CNAME",
+        true
+    ],
+    "star.is-chronically.online": [
+        "104.248.153.202",
+        "3b667515468830e0b1b028507c9be8ee",
+        "A",
+        true
+    ],
+    "kaitlyn.is-chronically.online": [
+        "kaitlyn.codes",
+        "1cdd3a4af2da2fde6d90164baa4160ed",
+        "CNAME",
+        true
+    ],
+    "maths_genius.is-chronically.online": [
+        "https://guns.lol/maths_genius",
+        "9568e159dfd46701b031d7b1b18c6154",
+        "URL",
+        true
+    ],
+    "omeritp.is-chronically.online": [
+        "https://cdn.discordapp.com/attachments/1439618084007841872/1443949211522699294/IMG_3572.jpg?ex=692aedff&is=69299c7f&hm=9733da78d1d1227d7f44b3468e15dbd76f6791df26ac9bcae994565f4e0f0aaa&",
+        "5df04c6375710e302ad9c266083dff4a",
+        "URL",
+        true
+    ],
+    "hermivore.is-chronically.online": [
+        "https://hermivore.playit.ooo",
+        "119d40a4d7d683af1424c877abe1e552",
+        "URL",
+        true
+    ],
+    "derpysquid.is-chronically.online": [
+        "https://derpysquid0.straw.page",
+        "180db0c7737487b0b04bd6d76840be48",
+        "URL",
+        true
+    ],
+    "jordan.is-chronically.online": [
+        "https://youtu.be/xvFZjo5PgG0",
+        "4ef31708d293d688ca9e89ab28f28678",
+        "URL",
+        true
+    ],
+    "simplicity.is-chronically.online": [
+        "https://www.youtube.com/channel/UC56-MR5npEtaV_A2fJg7mng",
+        "581a2db65dfe6411eac969c313151c11",
+        "URL",
+        true
+    ]
+}
