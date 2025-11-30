@@ -8,10 +8,33 @@ import signal
 import sys
 import subprocess
 import threading
+import logging
 import time
+import datetime
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+class UTC1030Formatter(logging.Formatter):
+    def converter(self, timestamp):
+        dt = datetime.datetime.utcfromtimestamp(timestamp)
+        # UTC+10:30 offset
+        offset = datetime.timedelta(hours=10, minutes=30)
+        return dt + offset
+    def formatTime(self, record, datefmt=None):
+        dt = self.converter(record.created)
+        if datefmt:
+            return dt.strftime(datefmt)
+        else:
+            return dt.isoformat()
+
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(UTC1030Formatter('%Y-%m-%d %H:%M:%S'))
 
 def save_sites_and_exit(signal_received, frame):
-    print("\nShutting down...")
+    logging.info("\nShutting down...")
     # Reconstruct the original format including URL types
     sites_data = {}
     for name, target in sites.items():
@@ -24,28 +47,34 @@ def save_sites_and_exit(signal_received, frame):
     
     with open('sites.json', 'w') as f:
         json.dump(sites_data, f, indent=4)
-    print("Saved sites.json")
+    logging.info("Saved sites.json")
     sys.exit(0)
 
 signal.signal(signal.SIGINT, save_sites_and_exit)  # Ctrl+C
 signal.signal(signal.SIGTERM, save_sites_and_exit) # kill command
 
 def git_pull_loop():
+    last_commit = None
+    repo_dir = os.path.dirname(__file__)
     while True:
-        time.sleep(600)  # 10 minutes
+        time.sleep(5)  # Check every 5 seconds
         try:
-            print("Running git pull...")
-            result = subprocess.run(['git', 'pull'], capture_output=True, text=True, cwd=os.path.dirname(__file__))
-            print(f"Git pull output: {result.stdout}")
-
-            print("Reloading sites.json...")
-            parse_sites()
-            print("Reloaded sites.json after git pull")
-
-            if result.stderr:
-                print(f"Git pull errors: {result.stderr}")
+            # Fetch latest changes
+            subprocess.run(['git', 'fetch'], cwd=repo_dir, capture_output=True)
+            # Get current local and remote commit hashes
+            local_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo_dir).decode().strip()
+            remote_commit = subprocess.check_output(['git', 'rev-parse', '@{u}'], cwd=repo_dir).decode().strip()
+            if local_commit != remote_commit:
+                logging.info("Changes detected, running git pull...")
+                result = subprocess.run(['git', 'pull'], capture_output=True, text=True, cwd=repo_dir)
+                logging.info(f"Git pull output: {result.stdout}")
+                logging.info("Reloading sites.json...")
+                parse_sites()
+                logging.info("Reloaded sites.json after git pull")
+                if result.stderr:
+                    logging.info(f"Git pull errors: {result.stderr}")
         except Exception as e:
-            print(f"Error running git pull: {e}")
+            logging.info(f"Error running git fetch/pull: {e}")
 
 
 self_ip = requests.get('https://ipinfo.io/').json()['ip']
@@ -120,7 +149,7 @@ def api_add_record():
     sites[name] = target
 
     content = self_ip
-    print(f"Adding DNS record: {record_type} {name} -> {content}")
+    logging.info(f"Adding DNS record: {record_type} {name} -> {content}")
     return add_dns_record(zone_id, record_type, name, content)
 
 @app.route("/api/reload_sites")
@@ -140,7 +169,7 @@ def reload_sites():
 def api_delete_record():
     zone_id = os.getenv("CLOUDFLARE_ZONE_ID")
     name = request.args.get('name')
-    print(f"Deleting DNS record: {name}")
+    logging.info(f"Deleting DNS record: {name}")
     return delete_dns_record(zone_id, name)
 
 
@@ -165,8 +194,7 @@ def matrix_client_well_known():
 def subdomain(path):
     host = request.host
     sub = host.split('.')[0] if host != "is-chronically.online" else None
-    
-    print(sub)
+
 
     if sub == None:
         return render_template('index.html', sites=sites)
@@ -199,7 +227,7 @@ if __name__ == '__main__':
     # Get remote records without overwriting local
     remote_dns_records = get_dns_records(zone_id)
 
-    print(remote_dns_records)
+    logging.info(remote_dns_records)
     
     for name, content in sites.items():
         local_record = dns_records.get(name)
@@ -211,32 +239,32 @@ if __name__ == '__main__':
         # Check if DNS ID is blank/None (manually added in JSON)
         if not local_record or not local_record[1]:
             if remote_record:
-                print(f"\nConflict detected for {name}:")
-                print(f"  Local:  {dns_content} {'(URL: ' + content + ')' if local_record and local_record[2] == 'A' and content.startswith(('http://', 'https://')) else ''}")
-                print(f"  Remote: {remote_record[0]}")
-                print("Attempting to use local value...")
+                logging.info(f"\nConflict detected for {name}:")
+                logging.info(f"  Local:  {dns_content} {'(URL: ' + content + ')' if local_record and local_record[2] == 'A' and content.startswith(('http://', 'https://')) else ''}")
+                logging.info(f"  Remote: {remote_record[0]}")
+                logging.info("Attempting to use local value...")
                 try:
                     # Try to create with local value
                     dns_type = "A"
                     result = client.dns.records.create(zone_id=zone_id, name=name, type=dns_type, content=dns_content, proxied=local_record[3] if local_record else True)
                     dns_records[name] = [dns_content, result.id, dns_type, local_record[3] if local_record else True]
-                    print(f"✓ Successfully created with local value: {dns_content}")
+                    logging.info(f"✓ Successfully created with local value: {dns_content}")
                 except Exception as e:
-                    print(f"✗ Failed to create with local value: {e}")
-                    print(f"Using remote value: {remote_record[0]}")
+                    logging.info(f"✗ Failed to create with local value: {e}")
+                    logging.info(f"Using remote value: {remote_record[0]}")
                     sites[name] = remote_record[0]
                     dns_records[name] = [remote_record[0], remote_record[1], remote_record[2], local_record[3] if local_record else True]
             else:
-                print(f"Creating DNS record for {name} -> {dns_content}")
+                logging.info(f"Creating DNS record for {name} -> {dns_content}")
                 # Use A record type for URL types
                 dns_type = "A"
                 result = client.dns.records.create(zone_id=zone_id, name=name, type=dns_type, content=dns_content, proxied=local_record[3] if local_record else True)
                 dns_records[name] = [dns_content, result.id, dns_type, local_record[3] if local_record else True]
         elif remote_record and remote_record[0] != dns_content:
-            print(f"\nConflict detected for {name}:")
-            print(f"  Local:  {dns_content} {'(URL: ' + content + ')' if local_record and local_record[2] == 'A' and content.startswith(('http://', 'https://')) else ''}")
-            print(f"  Remote: {remote_record[0]}")
-            print("Attempting to use local value...")
+            logging.info(f"\nConflict detected for {name}:")
+            logging.info(f"  Local:  {dns_content} {'(URL: ' + content + ')' if local_record and local_record[2] == 'A' and content.startswith(('http://', 'https://')) else ''}")
+            logging.info(f"  Remote: {remote_record[0]}")
+            logging.info("Attempting to use local value...")
             try:
                 # Try to update with local value
                 client.dns.records.update(
@@ -248,16 +276,16 @@ if __name__ == '__main__':
                     type="A"
                 )
                 dns_records[name] = [dns_content, local_record[1], "A", local_record[3]]
-                print(f"✓ Successfully updated to local value: {dns_content}")
+                logging.info(f"✓ Successfully updated to local value: {dns_content}")
             except Exception as e:
-                print(f"✗ Failed to update with local value: {e}")
-                print(f"Keeping remote value: {remote_record[0]}")
+                logging.error(f"✗ Failed to update with local value: {e}")
+                logging.error(f"Keeping remote value: {remote_record[0]}")
                 sites[name] = remote_record[0]
                 dns_records[name] = [remote_record[0], local_record[1], remote_record[2], local_record[3]]
-    print(dns_records)
+    logging.info(dns_records)
     
     # Start git pull thread
-    # git_thread = threading.Thread(target=git_pull_loop, daemon=True)
-    # git_thread.start()
+    git_thread = threading.Thread(target=git_pull_loop, daemon=True)
+    git_thread.start()
     
     app.run(debug=True, port=5678, host="0.0.0.0")
