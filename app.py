@@ -19,10 +19,14 @@ logging.basicConfig(
 )
 class UTC1030Formatter(logging.Formatter):
     def converter(self, timestamp):
-        dt = datetime.datetime.utcfromtimestamp(timestamp)
+        # Use timezone-aware UTC datetime
+        dt = datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
         # UTC+10:30 offset
         offset = datetime.timedelta(hours=10, minutes=30)
-        return dt + offset
+        dt = dt + offset
+        # Set the correct timezone info for UTC+10:30
+        dt = dt.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=10, minutes=30)))
+        return dt
     def formatTime(self, record, datefmt=None):
         dt = self.converter(record.created)
         if datefmt:
@@ -31,7 +35,7 @@ class UTC1030Formatter(logging.Formatter):
             return dt.isoformat()
 
 for handler in logging.getLogger().handlers:
-    handler.setFormatter(UTC1030Formatter('%Y-%m-%d %H:%M:%S'))
+    handler.setFormatter(UTC1030Formatter('{asctime} {levelname} {message}', style='{'))
 
 def save_sites_and_exit(signal_received, frame):
     logging.info("\nShutting down...")
